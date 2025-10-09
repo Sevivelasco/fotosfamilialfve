@@ -1,7 +1,7 @@
 runtime: python310
 instance_class: F1
 env: standard
-entrypoint: sh -c "streamlit run visor_web_2.py"
+entrypoint: gunicorn -w 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT visor_web_2:app
 handlers:
 - url: /.*
   script: auto
