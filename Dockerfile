@@ -11,6 +11,5 @@ COPY visor_web.py .
 # Instala las dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
-# El comando de inicio que ejecuta Streamlit
-# Cloud Run usa $PORT para el puerto de escucha
-CMD ["streamlit", "run", "visor_web.py", "--server.port", "8080", "--server.enableCORS", "false", "--server.enableXsrfProtection", "false"]
+# El comando de inicio que ejecuta Streamlit (CORREGIDO)
+CMD sh -c "streamlit run visor_web.py --server.port $PORT --server.enableCORS false --server.enableXsrfProtection false"
