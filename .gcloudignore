@@ -1,0 +1,7 @@
+# Excluir archivos innecesarios de la compilación
+.gcloudignore
+.git
+.gitignore
+.venv/
+__pycache__/
+*.pyc
