@@ -1,6 +1,6 @@
-runtime: python310
-instance_class: F1
-entrypoint: streamlit run visor_web 2.py --server.port $PORT --server.enableCORS false
+runtime: python312
+env: flex
+entrypoint: streamlit run visor_web_2.py --server.port $PORT
 handlers:
 - url: /.*
   script: auto
