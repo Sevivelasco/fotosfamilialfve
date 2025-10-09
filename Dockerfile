@@ -6,11 +6,11 @@ WORKDIR /app
 
 # Copia los archivos de requerimientos y Python
 COPY requirements.txt .
-COPY visor_web_2.py .  <-- ESTA LÍNEA DEBE SER CORRECTA
+COPY visor_web.py .  <-- NOMBRE CORREGIDO AQUÍ
 
 # Instala las dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
 # El comando de inicio que ejecuta Streamlit
 # Cloud Run usa $PORT para el puerto de escucha
-CMD ["streamlit", "run", "visor_web_2.py", "--server.port", "8080", "--server.enableCORS", "false", "--server.enableXsrfProtection", "false"]
+CMD ["streamlit", "run", "visor_web.py", "--server.port", "8080", "--server.enableCORS", "false", "--server.enableXsrfProtection", "false"]  <-- NOMBRE CORREGIDO AQUÍ
