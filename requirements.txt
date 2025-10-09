@@ -3,3 +3,4 @@ pandas
 gcsfs
 Pillow
 openpyxl
+gunicorn
