@@ -1,6 +1,8 @@
-runtime: python310
+runtime: python311
 env: flex
 entrypoint: streamlit run visor_web_2.py --server.port $PORT
 handlers:
 - url: /.*
   script: auto
+network:
+  session_affinity: true
