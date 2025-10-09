@@ -1,4 +1,4 @@
-runtime: python311
+runtime: python
 env: flex
 entrypoint: streamlit run visor_web_2.py --server.port $PORT
 handlers:
