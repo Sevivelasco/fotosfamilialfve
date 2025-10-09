@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Copia los archivos de requerimientos y Python
 COPY requirements.txt .
-COPY visor_web_2.py .
+COPY visor_web_2.py .  <-- ESTA LÍNEA DEBE SER CORRECTA
 
 # Instala las dependencias
 RUN pip install --no-cache-dir -r requirements.txt
