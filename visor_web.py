@@ -17,7 +17,6 @@ def init_gcs_fs():
     try:
         # Intenta inicializar GCS FileSystem.
         fs = gcsfs.GCSFileSystem()
-        # st.success("Conexión a Google Cloud Storage lista.") <-- LÍNEA ELIMINADA
         return fs
     except Exception as e:
         st.error(f"Error al inicializar GCS FileSystem. Verifique la configuración de su llave JSON o permisos. Error: {e}")
@@ -156,6 +155,12 @@ def go_home():
     st.session_state.criterio_busqueda = None
     st.session_state.anio_filtro = None
 
+def go_to_filter():
+    """Vuelve al menú de filtrado."""
+    st.session_state.menu_state = 'FILTRAR'
+    st.session_state.photo_index = 0
+    st.rerun()
+
 def filter_data(df, modo, criterio, anio_filtro_str):
     """Implementa la lógica de filtrado de DESCRIPCION/PERSONAJE de Tkinter."""
     
@@ -245,7 +250,6 @@ def update_index(direction):
 # --- 5. INTERFAZ DE STREAMLIT ---
 
 st.set_page_config(layout="wide", page_title="Visor Familiar Cloud")
-# st.title("Álbum Familiar Digital 📸 (Web)") <--- Título grande eliminado
 
 # 5.1. Carga inicial de datos
 for key, config in consultas_individuales.items():
@@ -374,27 +378,18 @@ elif st.session_state.menu_state == 'VER_FOTO':
     
     # 1. Determinar rutas
     opcion_elegida = st.session_state.opcion_elegida
-    # Esta línea requiere que NOMBRE_FOTO exista
     nombre_archivo = str(row["NOMBRE_FOTO"]).strip()
-    
-    # Usamos .get() para obtener la descripción
     descripcion = str(row.get("DESCRIPCION", "")).strip()
 
     if opcion_elegida in consultas_individuales:
-        # Usa la carpeta del Excel individual
         ruta_carpeta = consultas_individuales[opcion_elegida]["carpeta_fotos"]
     else:
-        # Usa la carpeta del DataFrame combinado
-        # Obtenemos solo el nombre de la carpeta (ej: FOTOSCO)
         ruta_carpeta = row['_FOLDER_PATH'].split('/')[-1]
     
     # URL completa de GCS
     photo_path = GCS_BASE_PATH.rstrip('/') + '/' + ruta_carpeta + '/' + nombre_archivo
     
-    # 2. Mostrar datos de la foto
-    # ⚠️ st.subheader y st.markdown("---") ELIMINADOS DE AQUI PARA MOVER LA FOTO ARRIBA
-
-    # Preparar metadatos (Personajes y Año)
+    # 2. Preparar metadatos (Personajes y Año)
     personajes = []
     for col in df.columns:
         if "PERSONAJE" in col:
@@ -402,31 +397,54 @@ elif st.session_state.menu_state == 'VER_FOTO':
             if pd.notna(valor) and str(valor).strip() != "":
                 personajes.append(str(valor).strip())
                 
-    # Usamos .get() para obtener el año
     anio_valor = row.get("AÑO")
     anio_foto = ""
     if pd.notna(anio_valor) and str(anio_valor).strip() != "":
         try:
-            # Asegurar que el año se muestra como un entero
             anio_foto = str(int(float(str(anio_valor).strip()))).strip()
         except:
             pass
             
-    # 3. Mostrar imagen o error
+    # 3. Mostrar imagen o error con botones laterales
+    
+    # Creamos las columnas para: (Botón Anterior), (Foto), (Botones Siguiente y Volver)
+    # 1.0 (Ancho para botón anterior), 4.0 (Ancho grande para la foto), 1.0 (Ancho para botones Siguiente/Volver)
+    col_nav_prev, col_img, col_nav_next = st.columns([1, 4, 1])
+    
     try:
         ext = os.path.splitext(nombre_archivo)[1].lower()
         if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff']:
-            # Cargar imagen desde GCS
             with fs.open(photo_path, 'rb') as f:
                 image_data = f.read()
                 
-            # Columnas ajustadas para centrar el contenido y usar el ancho completo
-            col_izq, col_img, col_der = st.columns([1, 4, 1])
-            
             with col_img:
-                # La lógica de Streamlit puede estirar la imagen si es pequeña y usa use_container_width=True
-                st.image(image_data, caption=nombre_archivo, use_container_width=True)
+                # ⚠️ MOSTRAR IMAGEN EN LA COLUMNA CENTRAL
+                st.image(image_data, use_container_width=True) 
+                
+            # --- COLOCACIÓN DE BOTONES (PEGO AL BORDE, CENTRADO VERTICAL) ---
             
+            # Botón ANTERIOR (Columna izquierda)
+            with col_nav_prev:
+                # Usamos un espaciado fijo para alinear verticalmente (ajustar si es necesario)
+                st.markdown('<div style="height: 150px;"></div>', unsafe_allow_html=True) 
+                # El botón usa el ancho completo de la columna pequeña
+                if st.button("⏪ Anterior", key="btn_prev", use_container_width=True):
+                    update_index(-1)
+
+            # Botones SIGUIENTE y VOLVER (Columna derecha)
+            with col_nav_next:
+                # El espaciado debe ser el mismo para mantener la simetría vertical
+                st.markdown('<div style="height: 150px;"></div>', unsafe_allow_html=True) 
+                
+                # Botón Siguiente
+                if st.button("Siguiente ⏩", key="btn_next", use_container_width=True):
+                    update_index(1)
+                
+                # Botón Volver al Filtro
+                # Agrupamos Siguiente y Volver en la columna derecha
+                if st.button("⬅️ Volver", key="btn_volver_filtro", use_container_width=True):
+                    go_to_filter() 
+
         elif ext in ['.mp4', '.avi', '.mov', '.mkv']:
             st.warning("⚠️ Archivo es un video. Haga clic derecho -> Guardar para descargar y ver.")
             st.markdown(f"**Archivo de video:** `{nombre_archivo}`")
@@ -439,40 +457,39 @@ elif st.session_state.menu_state == 'VER_FOTO':
     except Exception as e:
         st.error(f"Error al cargar la foto: {e}")
 
-    # 4. Mostrar Metadatos
-    st.markdown("---")
-    
-    # Mostrar Año y Personajes en columnas
-    col_meta1, col_meta2 = st.columns([1, 4])
-    col_meta1.metric(label="Año", value=anio_foto if anio_foto else "Desconocido")
-    
-    if personajes:
-        col_meta2.markdown(f"**Personajes:** {', '.join(personajes)}")
+    # 4. Mostrar Metadatos (Optimizados y sin grandes espacios)
+    st.markdown("<br>", unsafe_allow_html=True) # Espacio mínimo para separar la foto de los datos
 
-    # Mostrar Descripción
-    if descripcion:
-        st.info(f"**Descripción:** {descripcion}")
-    
-    # 5. Botones de Navegación
-    st.markdown("---")
-    col1, col2, col3, col4 = st.columns(4)
+    # Columna para datos: mismo ancho que la columna de la foto (4/6 del ancho)
+    col_izq_data, col_data, col_der_data = st.columns([1, 4, 1])
 
-    if col1.button("⏪ Anterior"):
-        update_index(-1) # Llama a la función con navegación circular
-    
-    if col2.button("Siguiente ⏩"):
-        update_index(1) # Llama a la función con navegación circular
+    with col_data:
+        # 1. DESCRIPCION (MÁS CERCA DE LA FOTO, SIN ETIQUETA)
+        if descripcion:
+            st.markdown(f"{descripcion}") # Solo el contenido sin negrita ni etiqueta
+        else:
+            st.markdown(f"*Descripción no disponible*")
 
-    if col3.button("🔄 Reiniciar Búsqueda"):
-        st.session_state.menu_state = 'FILTRAR'
-        st.session_state.photo_index = 0
-        st.rerun()
+        # 2. PERSONAJES (EN LA SIGUIENTE LÍNEA CON ETIQUETA)
+        if personajes:
+            st.markdown(f"**PERSONAJES:** {', '.join(personajes)}")
+        else:
+            st.markdown(f"**PERSONAJES:** *No disponibles*")
+            
+        # 3. NOMBRE DE ARCHIVO (AL FINAL)
+        st.markdown(f"**NOMBRE DE ARCHIVO:** `{nombre_archivo}`")
+        
+        # 4. AÑO
+        st.metric(label="Año", value=anio_foto if anio_foto else "Desconocido")
+        
+    st.markdown("---") # Separador después de los metadatos
 
-    if col4.button("🏠 Volver al Menú Principal"):
+    # 5. Botón Volver al Menú Principal (Abajo, separado del resto)
+    if st.button("🏠 Volver al Menú Principal"):
         go_home()
         st.rerun()
     
-    # --- POSICIÓN NUEVA DEL TITULO (AL FINAL DE LOS BOTONES) ---
+    # --- TÍTULO MOVIDO AL FINAL ---
     st.markdown("---")
     st.header(f"Foto {index + 1} de {total_photos} - {st.session_state.config_actual['nombre']}")
     # --- FIN POSICIÓN NUEVA ---
